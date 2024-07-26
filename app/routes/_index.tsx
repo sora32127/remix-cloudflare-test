@@ -1,48 +1,64 @@
-import type { MetaFunction } from "@remix-run/node";
+import { ActionFunctionArgs, json } from "@remix-run/node";
+import { useFetcher, useLoaderData } from "@remix-run/react";
+import { Turnstile } from "@marsidev/react-turnstile";
+import { useState } from "react";
 
-export const meta: MetaFunction = () => {
-  return [
-    { title: "New Remix App" },
-    { name: "description", content: "Welcome to Remix!" },
-  ];
-};
+export async function loader(){
+  const CF_TURNSTILE_SITE_KEY = process.env.CF_TURNSTILE_SITE_KEY;
+  return json({ CF_TURNSTILE_SITE_KEY });
+}
 
 export default function Index() {
+  const { CF_TURNSTILE_SITE_KEY } = useLoaderData<typeof loader>();
+
+  const [token, setToken] = useState<string>("");
+  const [isValidUser, setIsValidUser] = useState<boolean>(false);
+
+  const fetcher = useFetcher();
+
+  const handleTurnstileSuccess = (token: string) => {
+    setToken(token);
+    setIsValidUser(true);
+  };
+
+  const handleSubmit = () => {
+    const formData = new FormData();
+    formData.append("token", token);
+    fetcher.submit(formData, {
+      method: "post",
+      action: "/?index",
+    });
+
+  }
+
+  if (!CF_TURNSTILE_SITE_KEY) {
+    return <p>No CF_TURNSTILE_SITE_KEY found</p>;
+  }
+
   return (
-    <div className="font-sans p-4">
-      <h1 className="text-3xl">Welcome to Remix</h1>
-      <ul className="list-disc mt-4 pl-6 space-y-2">
-        <li>
-          <a
-            className="text-blue-700 underline visited:text-purple-900"
-            target="_blank"
-            href="https://remix.run/start/quickstart"
-            rel="noreferrer"
-          >
-            5m Quick Start
-          </a>
-        </li>
-        <li>
-          <a
-            className="text-blue-700 underline visited:text-purple-900"
-            target="_blank"
-            href="https://remix.run/start/tutorial"
-            rel="noreferrer"
-          >
-            30m Tutorial
-          </a>
-        </li>
-        <li>
-          <a
-            className="text-blue-700 underline visited:text-purple-900"
-            target="_blank"
-            href="https://remix.run/docs"
-            rel="noreferrer"
-          >
-            Remix Docs
-          </a>
-        </li>
-      </ul>
-    </div>
+    <>
+      <h1>React-Turnstile-Demo</h1>
+      <Turnstile siteKey={CF_TURNSTILE_SITE_KEY} onSuccess={(token) => handleTurnstileSuccess(token)} />
+      <button
+        disabled={!isValidUser}
+        onClick={handleSubmit}
+        className={`bg-blue-500 text-white px-4 py-2 rounded-md ${!isValidUser ? "bg-gray-200 cursor-not-allowed" : ""}`}>Submit</button>
+    </>
+ 
   );
+}
+
+export async function action({ request }: ActionFunctionArgs) {
+  const formData = await request.formData();  
+  const origin = new URL(request.url).origin;
+  const response = await fetch(`${origin}/api/verify`, {
+    method: "POST",
+    body: formData,
+  });
+  const data = await response.json();
+  if (data.success) {
+    return json({ message: "ok" });
+  }
+
+  return json({ message: "error" });
 }

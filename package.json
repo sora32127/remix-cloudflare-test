@@ -11,12 +11,14 @@
     "typecheck": "tsc"
   },
   "dependencies": {
+    "@marsidev/react-turnstile": "^0.7.2",
     "@remix-run/node": "^2.10.3",
     "@remix-run/react": "^2.10.3",
     "@remix-run/serve": "^2.10.3",
     "isbot": "^4.1.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "react-turnstile": "^1.1.3"
   },
   "devDependencies": {
     "@remix-run/dev": "^2.10.3",
